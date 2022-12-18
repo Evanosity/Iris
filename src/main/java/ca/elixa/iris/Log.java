@@ -1,4 +1,4 @@
-package ca.grindforloot.iris;
+package ca.elixa.iris;
 
 public class Log {
     public final Level level;

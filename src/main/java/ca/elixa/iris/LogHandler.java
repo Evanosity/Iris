@@ -1,4 +1,4 @@
-package ca.grindforloot.iris;
+package ca.elixa.iris;
 
 @FunctionalInterface
 public interface LogHandler<I> {

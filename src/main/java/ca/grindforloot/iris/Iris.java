@@ -4,75 +4,88 @@ import java.lang.ref.Cleaner;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * A threadsafe logger, that allows for custom implementations.
+ * A tracing Logger
  */
-public class Iris {
+public class Iris<I> {
+
+    private final Supplier<I> getFunction;
+    private final LogHandler<I> logFunction;
+    private final Consumer<I> outputFunction;
     //singleton logic
-    private Iris(){};
+    private Iris (Supplier<I> getFunction, LogHandler<I> logFunction, Consumer<I> outputFunction){
+        this.getFunction = getFunction;
+        this.logFunction = logFunction;
+        this.outputFunction = outputFunction;
+    }
+
     private static Iris instance = null;
-    public static Iris getInstance(){
-        if(instance == null) {
-            instance = new Iris();
-        }
+
+    /**
+     * Initialize Iris
+     * @param getFunction - function that returns T
+     * @param logFunction - function that takes T and a log, and stores the log in local memory
+     * @param outputFunction - function that gets called on commit()
+     * @return
+     * @param <T> - The type that is storing the logs
+     */
+    public static <T> Iris init(Supplier<T> getFunction, LogHandler<T> logFunction, Consumer<T> outputFunction){
+        if(instance == null)
+            instance = new Iris(getFunction, logFunction, outputFunction);
 
         return instance;
     }
-    
-    private Map<Level, List<LogHandler>> handlers = new HashMap<>();
-    private Supplier<Logger> getLoggerHandler = null;
-    private Consumer<Logger> commitHandler = null;
 
     /**
-     * Add a handler for a log level. A null level means it will be called for all logs.
-     * @param level
-     * @param handler
+     * Get the Iris instance
+     * @return
      */
-    public void addHandler(Level level, LogHandler handler){
-        handlers.get(level).add(handler);
+    private static Iris getInstance(){
+        if(instance == null)
+            throw new IllegalStateException("bruh");
+        return instance;
     }
 
     /**
-     * Log a message.
-     * @param level
+     * Log a message at Level.INFO
      * @param message
-     * @param arguments
+     * @param <T>
      */
-    public void log(Level level, String message, Object... arguments){
-        String formatted = String.format(message, arguments);
-
-        //Load all of the handlers
-        List<LogHandler> targetHandlers = handlers.get(null);
-        if(level != null)
-            targetHandlers.addAll(handlers.get(level));
-
-        for(LogHandler handler : targetHandlers){
-            handler.handle(null);
-        }
+    public static <T> void log(String message){
+        log(message, Level.INFO);
     }
-    
-    public void setCommitHandler(Consumer<Logger> handler) {
-        commitHandler = handler;
-    }
-
-    public void commit(){
-        commitHandler.accept(getLogger());
-    }
-
 
     /**
-     * Set the handler
-     * @param handler
+     * Log a message at the specified level
+     * @param message
+     * @param level
+     * @param <T>
      */
-    public void setGetLoggerHandler(Supplier<Logger> handler){
-        getLoggerHandler = handler;
+    public static <T> void log(String message, Level level){
+        //create the log
+        Log log = new Log(message, level);
+
+        //get the identifier
+        Iris<T> iris = getInstance();
+        T identifier = iris.getFunction.get();
+
+        //store the logs
+        iris.logFunction.handle(identifier, log);
     }
 
-    public Logger getLogger(){
-        return getLoggerHandler.get();
+    /**
+     * Pull the logs out of iris and to wherever you want!
+     * @param <T>
+     */
+    public static <T> void commit(){
+        Iris<T> iris = getInstance();
+        T identifier = iris.getFunction.get();
+
+        iris.outputFunction.accept(identifier);
     }
 }

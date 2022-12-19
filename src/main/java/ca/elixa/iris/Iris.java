@@ -1,6 +1,10 @@
 package ca.elixa.iris;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -9,12 +13,18 @@ import java.util.function.Supplier;
 public class Iris<I> {
 
     private final Supplier<I> getFunction;
-    private final LogHandler<I> logFunction;
-    private final Consumer<I> outputFunction;
+    private final Function<I, List<Log>> getLogsFunction;
+    private final BiConsumer<I, List<Log>> storeLogsFunction;
+    private final Consumer<List<Log>> outputFunction;
     //singleton logic
-    private Iris (Supplier<I> getFunction, LogHandler<I> logFunction, Consumer<I> outputFunction){
+    private Iris (Supplier<I> getFunction,
+                  Function<I, List<Log>> getLogsFunction,
+                  BiConsumer<I, List<Log>> storeLogsFunction,
+                  Consumer<List<Log>> outputFunction){
+
         this.getFunction = getFunction;
-        this.logFunction = logFunction;
+        this.getLogsFunction = getLogsFunction;
+        this.storeLogsFunction = storeLogsFunction;
         this.outputFunction = outputFunction;
     }
 
@@ -28,9 +38,12 @@ public class Iris<I> {
      * @return
      * @param <T> - The type that is storing the logs
      */
-    public static <T> Iris init(Supplier<T> getFunction, LogHandler<T> logFunction, Consumer<T> outputFunction){
+    public static <T> Iris init(Supplier<T> getFunction,
+                                Function<T, List<Log>> getLogsFunction,
+                                BiConsumer<T, List<Log>> storeLogsFunction,
+                                Consumer<List<Log>> outputFunction){
         if(instance == null)
-            instance = new Iris(getFunction, logFunction, outputFunction);
+            instance = new Iris(getFunction, getLogsFunction, storeLogsFunction, outputFunction);
 
         return instance;
     }
@@ -45,13 +58,17 @@ public class Iris<I> {
         return instance;
     }
 
-    /**
-     * Log a message at Level.INFO
-     * @param message
-     * @param <T>
-     */
-    public static <T> void log(String message){
+    public static void error(String message){
+        log(message, Level.ERROR);
+    }
+    public static void warning(String message){
+        log(message, Level.WARNING);
+    }
+    public static void info(String message){
         log(message, Level.INFO);
+    }
+    public static void debug(String message){
+        log(message, Level.DEBUG);
     }
 
     /**
@@ -69,7 +86,14 @@ public class Iris<I> {
         T identifier = iris.getFunction.get();
 
         //store the logs
-        iris.logFunction.handle(identifier, log);
+        List<Log> currentLogs = iris.getLogsFunction.apply(identifier);
+
+        if(currentLogs == null)
+            currentLogs = new ArrayList<>();
+
+        currentLogs.add(log);
+
+        iris.storeLogsFunction.accept(identifier, currentLogs);
     }
 
     /**
@@ -80,6 +104,6 @@ public class Iris<I> {
         Iris<T> iris = getInstance();
         T identifier = iris.getFunction.get();
 
-        iris.outputFunction.accept(identifier);
+        iris.outputFunction.accept(iris.getLogsFunction.apply(identifier));
     }
 }

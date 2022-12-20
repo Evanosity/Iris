@@ -33,7 +33,8 @@ public class Iris<I> {
     /**
      * Initialize Iris
      * @param getFunction - function that returns T
-     * @param logFunction - function that takes T and a log, and stores the log in local memory
+     * @param getLogsFunction - function that takes T and a list of logs
+     * @param storeLogsFunction - function that T and a log list, and stores the list.
      * @param outputFunction - function that gets called on commit()
      * @return
      * @param <T> - The type that is storing the logs
@@ -104,6 +105,9 @@ public class Iris<I> {
         Iris<T> iris = getInstance();
         T identifier = iris.getFunction.get();
 
-        iris.outputFunction.accept(iris.getLogsFunction.apply(identifier));
+        List<Log> logs = iris.getLogsFunction.apply(identifier);
+
+        if(logs != null)
+            iris.outputFunction.accept(logs);
     }
 }

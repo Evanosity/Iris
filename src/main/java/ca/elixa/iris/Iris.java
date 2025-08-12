@@ -16,16 +16,18 @@ public class Iris<I> {
     private final Function<I, List<Log>> getLogsFunction;
     private final BiConsumer<I, List<Log>> storeLogsFunction;
     private final Consumer<List<Log>> outputFunction;
+    private final Consumer<I> commitFunction;
     //singleton logic
     private Iris (Supplier<I> getFunction,
                   Function<I, List<Log>> getLogsFunction,
                   BiConsumer<I, List<Log>> storeLogsFunction,
-                  Consumer<List<Log>> outputFunction){
+                  Consumer<List<Log>> outputFunction, Consumer<I> commitFunction){
 
         this.getFunction = getFunction;
         this.getLogsFunction = getLogsFunction;
         this.storeLogsFunction = storeLogsFunction;
         this.outputFunction = outputFunction;
+        this.commitFunction = commitFunction;
     }
 
     private static Iris instance = null;
@@ -42,9 +44,9 @@ public class Iris<I> {
     public static <T> Iris init(Supplier<T> getFunction,
                                 Function<T, List<Log>> getLogsFunction,
                                 BiConsumer<T, List<Log>> storeLogsFunction,
-                                Consumer<List<Log>> outputFunction){
+                                Consumer<List<Log>> outputFunction, Consumer<T> commitFunction){
         if(instance == null)
-            instance = new Iris(getFunction, getLogsFunction, storeLogsFunction, outputFunction);
+            instance = new Iris(getFunction, getLogsFunction, storeLogsFunction, outputFunction, commitFunction);
 
         return instance;
     }
@@ -106,6 +108,8 @@ public class Iris<I> {
         T identifier = iris.getFunction.get();
 
         List<Log> logs = iris.getLogsFunction.apply(identifier);
+
+        iris.commitFunction.accept(identifier);
 
         if(logs != null)
             iris.outputFunction.accept(logs);

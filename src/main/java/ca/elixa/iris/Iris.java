@@ -70,6 +70,12 @@ public class Iris<I> {
     public static void info(String message){
         log(message, Level.INFO);
     }
+
+    public static void debug(String... messages){
+        for(String m : messages){
+            debug(m);
+        }
+    }
     public static void debug(String message){
         log(message, Level.DEBUG);
     }

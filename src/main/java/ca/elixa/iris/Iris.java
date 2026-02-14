@@ -15,18 +15,16 @@ public class Iris<I> {
     private final Supplier<I> getFunction;
     private final Function<I, List<Log>> getLogsFunction;
     private final BiConsumer<I, List<Log>> storeLogsFunction;
-    private final Consumer<List<Log>> outputFunction;
-    private final Consumer<I> commitFunction;
+    private final BiConsumer<I, List<Log>> commitFunction;
     //singleton logic
     private Iris (Supplier<I> getFunction,
                   Function<I, List<Log>> getLogsFunction,
                   BiConsumer<I, List<Log>> storeLogsFunction,
-                  Consumer<List<Log>> outputFunction, Consumer<I> commitFunction){
+                  BiConsumer<I, List<Log>> commitFunction){
 
         this.getFunction = getFunction;
         this.getLogsFunction = getLogsFunction;
         this.storeLogsFunction = storeLogsFunction;
-        this.outputFunction = outputFunction;
         this.commitFunction = commitFunction;
     }
 
@@ -37,16 +35,16 @@ public class Iris<I> {
      * @param getFunction - function that returns T
      * @param getLogsFunction - function that takes T and a list of logs
      * @param storeLogsFunction - function that T and a log list, and stores the list.
-     * @param outputFunction - function that gets called on commit()
+     * @param commitFunction - function that gets called on commit()
      * @return
      * @param <T> - The type that is storing the logs
      */
     public static <T> Iris init(Supplier<T> getFunction,
                                 Function<T, List<Log>> getLogsFunction,
                                 BiConsumer<T, List<Log>> storeLogsFunction,
-                                Consumer<List<Log>> outputFunction, Consumer<T> commitFunction){
+                                BiConsumer<T, List<Log>> commitFunction){
         if(instance == null)
-            instance = new Iris(getFunction, getLogsFunction, storeLogsFunction, outputFunction, commitFunction);
+            instance = new Iris(getFunction, getLogsFunction, storeLogsFunction, commitFunction);
 
         return instance;
     }
@@ -72,8 +70,10 @@ public class Iris<I> {
     }
 
     public static void debug(String... messages){
+        String message = "";
+
         for(String m : messages){
-            debug(m);
+            message = message;
         }
     }
     public static void debug(String message){
@@ -94,7 +94,7 @@ public class Iris<I> {
         Iris<T> iris = getInstance();
         T identifier = iris.getFunction.get();
 
-        //store the logs
+        //retrieve the present logs
         List<Log> currentLogs = iris.getLogsFunction.apply(identifier);
 
         if(currentLogs == null)
@@ -113,11 +113,8 @@ public class Iris<I> {
         Iris<T> iris = getInstance();
         T identifier = iris.getFunction.get();
 
-        List<Log> logs = iris.getLogsFunction.apply(identifier);
+        //List<Log> logs = iris.getLogsFunction.apply(identifier);
 
-        iris.commitFunction.accept(identifier);
-
-        if(logs != null)
-            iris.outputFunction.accept(logs);
+        iris.commitFunction.accept(identifier, iris.getLogsFunction.apply(identifier));
     }
 }

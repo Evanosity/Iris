@@ -95,10 +95,7 @@ public class Iris<I> {
         T identifier = iris.getFunction.get();
 
         //retrieve the present logs
-        List<Log> currentLogs = iris.getLogsFunction.apply(identifier);
-
-        if(currentLogs == null)
-            currentLogs = new ArrayList<>();
+        List<Log> currentLogs = iris.getLogsInternal(identifier);
 
         currentLogs.add(log);
 
@@ -113,8 +110,16 @@ public class Iris<I> {
         Iris<T> iris = getInstance();
         T identifier = iris.getFunction.get();
 
-        //List<Log> logs = iris.getLogsFunction.apply(identifier);
+        iris.commitFunction.accept(identifier, iris.getLogsInternal(identifier));
+    }
 
-        iris.commitFunction.accept(identifier, iris.getLogsFunction.apply(identifier));
+
+    private List<Log> getLogsInternal(I identifier){
+        List<Log> logs = getLogsFunction.apply(identifier);
+
+        if(logs == null)
+            logs = new ArrayList<>();
+
+        return logs;
     }
 }
